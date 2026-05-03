@@ -31,6 +31,7 @@ export default function Agents() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState(null)
+  const [pmResult, setPmResult] = useState(null)
 
   const [agentForm, setAgentForm] = useState({
     name: '',
@@ -43,6 +44,7 @@ export default function Agents() {
     title: '',
     description: '',
     priority: 'normal',
+    useAiAssign: true,
   })
 
   useEffect(() => {
@@ -95,21 +97,37 @@ export default function Agents() {
       return
     }
 
-    if (!selectedAgent) {
-      alert('请选择一个Agent')
-      return
-    }
-    const res = await api.post('/api/agent-tasks', {
-      agent_id: selectedAgent.id,
-      title: taskForm.title,
-      description: taskForm.description,
-      priority: taskForm.priority,
-      assigned_by: '手动分配',
-    })
-    if (res.ok) {
-      setShowTaskModal(false)
-      setTaskForm({ title: '', description: '', priority: 'normal' })
-      fetchData()
+    if (taskForm.useAiAssign) {
+      const res = await api.post('/api/pm/smart-assign', {
+        title: taskForm.title,
+        description: taskForm.description,
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setPmResult(data)
+        setShowTaskModal(false)
+        setTaskForm({ title: '', description: '', priority: 'normal', useAiAssign: true })
+        fetchData()
+      } else {
+        alert('AI分配失败：' + JSON.stringify(data))
+      }
+    } else {
+      if (!selectedAgent) {
+        alert('请选择一个Agent')
+        return
+      }
+      const res = await api.post('/api/agent-tasks', {
+        agent_id: selectedAgent.id,
+        title: taskForm.title,
+        description: taskForm.description,
+        priority: taskForm.priority,
+        assigned_by: '手动分配',
+      })
+      if (res.ok) {
+        setShowTaskModal(false)
+        setTaskForm({ title: '', description: '', priority: 'normal', useAiAssign: true })
+        fetchData()
+      }
     }
   }
 
@@ -187,7 +205,7 @@ export default function Agents() {
             agents={agents}
             tasks={tasks}
             onDelete={handleDeleteAgent}
-            onAssignTask={(agent) => { setSelectedAgent(agent); setShowTaskModal(true); setTaskForm({ title: '', description: '', priority: 'normal' }) }}
+            onAssignTask={(agent) => { setSelectedAgent(agent); setShowTaskModal(true); setTaskForm({ ...taskForm, useAiAssign: false }); setPmResult(null) }}
           />
         ) : (
           <TaskList
@@ -234,7 +252,7 @@ export default function Agents() {
       )}
 
       {showTaskModal && (
-        <Modal title={`分配任务给 ${selectedAgent?.name || ''}`} onClose={() => setShowTaskModal(false)}>
+        <Modal title={taskForm.useAiAssign ? "AI 智能分配任务" : `分配任务给 ${selectedAgent?.name || ''}`} onClose={() => setShowTaskModal(false)}>
           <div className="space-y-4">
             <Field label="任务标题 *" value={taskForm.title} onChange={(v) => setTaskForm({ ...taskForm, title: v })} placeholder="如：完成用户信息模块开发" />
             <div>
@@ -247,18 +265,29 @@ export default function Agents() {
                 placeholder="详细描述任务内容和预期成果"
               />
             </div>
-            <div>
-              <label className="block text-sm text-slate-400 mb-1">优先级</label>
-              <select
-                value={taskForm.priority}
-                onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="high">高优先级</option>
-                <option value="normal">普通</option>
-                <option value="low">低优先级</option>
-              </select>
-            </div>
+            {!taskForm.useAiAssign && (
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">优先级</label>
+                <select
+                  value={taskForm.priority}
+                  onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value })}
+                  className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white focus:border-blue-500 focus:outline-none"
+                >
+                  <option value="high">高优先级</option>
+                  <option value="normal">普通</option>
+                  <option value="low">低优先级</option>
+                </select>
+              </div>
+            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={taskForm.useAiAssign}
+                onChange={(e) => setTaskForm({ ...taskForm, useAiAssign: e.target.checked })}
+                className="rounded"
+              />
+              <span className="text-sm text-slate-300">由项目经理 AI 智能分配</span>
+            </label>
             <div className="flex gap-3 justify-end pt-2">
               <button onClick={() => setShowTaskModal(false)} className="px-4 py-2 text-sm text-slate-400 border border-slate-600 rounded-lg hover:border-slate-500">取消</button>
               <button onClick={handleCreateTask} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-500">提交</button>
