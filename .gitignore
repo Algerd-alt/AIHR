@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Database
+*.db
+*.sqlite
+
+# Environment
+.env.local
+.env.*.local
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment
+.iga/
+.clawhub/
+
+# Test files
+test_*.py
+
+# Logs
+logs/
+*.log
+
+# Misc
+*.bak

@@ -1,0 +1,12 @@
+{
+  "name": "ai-interview-backend",
+  "runtime": "python3.12",
+  "handler": "main.handler",
+  "memory": 512,
+  "timeout": 60,
+  "environment": {
+    "DATABASE_URL": "sqlite:///./ai_interview.db",
+    "ARK_BASE_URL": "https://ark.cn-beijing.volces.com/api/v3",
+    "ARK_MODEL": "doubao-pro-32k"
+  }
+}

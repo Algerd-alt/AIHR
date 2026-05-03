@@ -1,0 +1,15 @@
+frontend/
+backend/
+deploy-backend/
+pm-portfolio/
+skills/
+app/
+.claude/
+.clawhub/
+*.db
+__pycache__/
+*.pyc
+.trae/
+.venv/
+*.bak
+main.py
