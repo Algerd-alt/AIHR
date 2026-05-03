@@ -134,7 +134,7 @@ def now_str():
 def call_ai(messages, model=None):
     api_key = os.environ.get("ARK_API_KEY", "ark-73f1836e-54e9-4b77-9ceb-1fa38ee7c48c-c5d8d")
     base_url = os.environ.get("ARK_BASE_URL", "https://ark.cn-beijing.volces.com")
-    model = model or os.environ.get("ARK_MODEL", "doubao-lite-4k")
+    model = model or os.environ.get("ARK_MODEL", "Doubao-Speed-1.6")
     
     parsed = urlparse(base_url)
     conn = http.client.HTTPSConnection(parsed.hostname)
@@ -568,55 +568,6 @@ def delete_agent_task(event, ctx, task_id=None):
     db.commit()
     db.close()
     return success_response({"message": "Task deleted"})
-
-# ---- 项目经理 AI 调度 ----
-@route("/api/pm/smart-assign", ["POST"])
-def pm_smart_assign(event, ctx):
-    data = parse_body(event)
-    title = data.get("title", "")
-    description = data.get("description", "")
-
-    if not title:
-        return error_response("任务标题不能为空", 400)
-
-    db = get_db()
-    agents = db.execute("SELECT id, name, role, skills FROM agents WHERE status = 'active'").fetchall()
-    agents_list = [{"id": a["id"], "name": a["name"], "role": a["role"], "skills": a["skills"]} for a in agents]
-    db.close()
-
-    if not agents_list:
-        return error_response("没有活跃的Agent", 400)
-
-    pm_prompt = f"""你是项目经理，请分析任务并选择最适合的Agent。只返回JSON。
-候选Agent：{json.dumps(agents_list, ensure_ascii=False)}
-任务标题：{title}
-任务描述：{description}
-
-返回格式：{{"agent_id": "选中的AgentID", "reason": "选择理由", "suggestion": "执行建议"}}"""
-
-    messages = [{"role": "user", "content": pm_prompt}]
-    content, err = call_ai(messages)
-    if err:
-        return success_response({"error": err}, 500)
-
-    try:
-        result = json.loads(content)
-    except:
-        result = {"agent_id": agents_list[0]["id"], "reason": "AI分析失败，已默认分配", "suggestion": ""}
-
-    agent_id = result.get("agent_id", agents_list[0]["id"])
-    task_id = gen_id()
-
-    db = get_db()
-    db.execute("""
-        INSERT INTO agent_tasks (id, agent_id, title, description, priority, assigned_by)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (task_id, agent_id, title, description, "normal", "项目经理"))
-    db.execute("UPDATE agents SET task_count = task_count + 1 WHERE id = ?", (agent_id,))
-    db.commit()
-    db.close()
-
-    return success_response({"task_id": task_id, "agent_id": agent_id, "reason": result.get("reason", ""), "suggestion": result.get("suggestion", "")})
 
 # ---- veFaaS 入口 ----
 def handler(event, context):
