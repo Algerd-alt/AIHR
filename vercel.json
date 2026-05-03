@@ -10,9 +10,8 @@
   ],
   "routes": [
     {
-      "src": "/((?!api/).*)",
-      "dest": "/frontend/dist/$1",
-      "fallback": true
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
     }
   ],
   "env": {
